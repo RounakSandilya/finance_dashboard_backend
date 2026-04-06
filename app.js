@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json()); //json parsing
 
 //Routes
-app.use("/api", (req,res) => {
+app.use("/", (req,res) => {
   res.send("Finance Dashboard root api is running....");
 })
 app.use("/api/auth",authRoutes);
