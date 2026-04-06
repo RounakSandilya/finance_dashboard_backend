@@ -1,0 +1,313 @@
+openapi: 3.0.0
+info:
+  title: Finance Dashboard API
+  description: API documentation for Finance Dashboard Backend
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    Role:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+          enum: [Viewer, Analyst, Admin]
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        isActive:
+          type: boolean
+
+    Token:
+      type: object
+      properties:
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    Record:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [income, expense]
+        category:
+          type: string
+        user:
+          type: string
+          description: User ID reference
+        date:
+          type: string
+          format: date-time
+
+paths:
+
+  # 🔐 AUTH
+  /api/auth/register:
+    post:
+      summary: Register user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required: [name, email, password, role]
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  description: Role ID
+      responses:
+        201:
+          description: User registered successfully
+
+  /api/auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required: [email, password]
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: JWT token returned
+
+  /api/auth/logout:
+    post:
+      summary: Logout user (token blacklist)
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Token invalidated
+
+  # 👤 USERS
+  /api/users:
+    get:
+      summary: Get all users (Admin only)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+  /api/users/{id}/status:
+    patch:
+      summary: Activate/Deactivate user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isActive]
+              properties:
+                isActive:
+                  type: boolean
+      responses:
+        200:
+          description: User status updated
+
+  # 📊 RECORDS
+  /api/records:
+    post:
+      summary: Create record (Admin, Analyst)
+      tags: [Records]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required: [title, amount, type, category]
+              type: object
+              properties:
+                title:
+                  type: string
+                amount:
+                  type: number
+                type:
+                  type: string
+                  enum: [income, expense]
+                category:
+                  type: string
+      responses:
+        201:
+          description: Record created
+
+    get:
+      summary: Get records (with filters)
+      tags: [Records]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: date
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Record'
+
+  /api/records/{id}:
+    put:
+      summary: Update record (Admin)
+      tags: [Records]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Record'
+      responses:
+        200:
+          description: Record updated
+
+    delete:
+      summary: Delete record (Admin)
+      tags: [Records]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Record deleted
+
+  # 📈 DASHBOARD
+  /api/dashboard/summary:
+    get:
+      summary: Income, Expense, Balance
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Summary data
+
+  /api/dashboard/category:
+    get:
+      summary: Category-wise totals
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Category data
+
+  /api/dashboard/trends:
+    get:
+      summary: Monthly trends
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Trends data
+
+  /api/dashboard/recent:
+    get:
+      summary: Recent activity
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Recent records
