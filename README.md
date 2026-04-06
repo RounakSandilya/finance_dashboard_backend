@@ -334,6 +334,11 @@ Server running on port 5000
 ```
 ---
 
+🔗 Base URL
+http://localhost:5000/api
+
+---
+
 # 🔑 Environment Variables
 
 Create `.env` file:
